@@ -25,3 +25,7 @@ dist/
 build/
 coverage.xml
 .coverage
+
+# Recoverable local Git metadata backup (never publish)
+.git-phase1-backup/
+
