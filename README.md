@@ -301,3 +301,45 @@ precio, país o imagen desconocidos y no incorpora eventos presenciales de
 otros países. Si AWS marca un registro como virtual y presencial a la vez, se
 normaliza como `hybrid`.
 
+## Fase 5: clasificación, deduplicación y filtros
+
+Todos los conectores pasan ahora por un clasificador local antes de escribir en
+Supabase. No usa IA ni servicios pagados: aplica reglas ordenadas sobre título,
+descripción, organizador, tipo y etiquetas. Las categorías disponibles son:
+
+- Artificial Intelligence, Cloud, Data y Cybersecurity;
+- DevOps, Programming, Web Development y Mobile;
+- Blockchain, Networking e IoT;
+- Entrepreneurship, Technology y Other.
+
+La categoría más específica se elige como principal y las demás señales útiles
+se conservan como etiquetas, por ejemplo `AI`, `AWS`, `Python`, `Security` o
+`Serverless`. Las etiquetas originales de cada proveedor no se eliminan.
+
+La deduplicación mantiene las dos comprobaciones exactas existentes:
+`(source, source_event_id)` y `event_hash`. Además compara eventos nuevos contra
+las demás fuentes mediante título normalizado, palabras compartidas, una
+ventana máxima de 30 minutos, ciudad y similitud del organizador. Los umbrales
+son deliberadamente conservadores para no fusionar sesiones distintas.
+
+`backend/services/event_filter.py` ofrece filtros combinables para búsqueda,
+rango de fechas, categoría, organizador, modalidad, ciudad, gratuidad, tipo de
+evento y etiquetas. Esta lógica es independiente de React y se reutilizará al
+construir la interfaz.
+
+Ejecuta todas las fuentes con clasificación:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.main
+```
+
+Verifica la cobertura y los duplicados almacenados:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.scripts.check_phase5
+```
+
+La comprobación analiza únicamente eventos próximos publicados, muestra su
+distribución por categoría y falla si no existen categorías, etiquetas o si
+detecta un duplicado probable entre proveedores.
+
