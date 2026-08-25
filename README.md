@@ -343,3 +343,34 @@ La comprobación analiza únicamente eventos próximos publicados, muestra su
 distribución por categoría y falla si no existen categorías, etiquetas o si
 detecta un duplicado probable entre proveedores.
 
+## Fase 6: actualización automática con GitHub Actions
+
+El workflow `.github/workflows/update-events.yml` ejecuta el pipeline cuatro
+veces al día, cada seis horas, a las `00:17`, `06:17`, `12:17` y `18:17` de la
+zona `America/Lima`. También permite iniciarlo manualmente desde la pestaña
+Actions. El minuto 17 evita concentrar el trabajo al inicio de cada hora.
+
+En cada ejecución GitHub:
+
+1. descarga el repositorio con permisos de sólo lectura;
+2. prepara Python 3.13 y reutiliza la caché de `pip`;
+3. valida que existan los dos secretos requeridos;
+4. instala las dependencias y ejecuta las pruebas;
+5. recopila, clasifica, deduplica y guarda los eventos;
+6. verifica categorías y duplicados en Supabase.
+
+Configura estos **Repository secrets** en GitHub, nunca como variables públicas:
+
+- `SUPABASE_URL`: Project URL de Supabase;
+- `SUPABASE_SECRET_KEY`: clave privada `sb_secret_...` del backend.
+
+Ruta: **GitHub → RECOPILAR_LINK → Settings → Secrets and variables → Actions →
+New repository secret**. Después abre **Actions → Update technology events →
+Run workflow → Run workflow**. La ejecución correcta debe finalizar en verde y
+el último registro de cada fuente debe aparecer en `scraping_logs`.
+
+El workflow usa `concurrency` para evitar dos actualizaciones simultáneas, tiene
+un límite de 20 minutos y no imprime los valores de los secretos. Un fallo de un
+conector queda aislado por el pipeline; si todas las fuentes fallan, el job sí
+termina con error.
+
