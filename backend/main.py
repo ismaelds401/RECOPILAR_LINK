@@ -7,19 +7,22 @@ import json
 import sys
 
 from backend.connectors.base_connector import BaseConnector
+from backend.connectors.gdg import GDGConnector, INITIAL_GDG_CHAPTERS
 from backend.connectors.luma import LumaConnector
 from backend.services.event_repository import EventRepository, PersistenceStats
 from backend.services.supabase_service import create_backend_client
 
 
 def build_connectors() -> list[BaseConnector]:
-    return [
+    connectors: list[BaseConnector] = [
         LumaConnector(
             calendar_id="cal-HBdmsARYSzYhpuc",
             calendar_slug="hack0",
             calendar_name="Hack0 Community",
         )
     ]
+    connectors.extend(GDGConnector(chapter) for chapter in INITIAL_GDG_CHAPTERS)
+    return connectors
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,6 +37,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=5,
         help="Number of normalized event summaries to print.",
+    )
+    parser.add_argument(
+        "--only",
+        choices=("all", "luma", "gdg"),
+        default="all",
+        help="Run every connector or only one provider family.",
     )
     return parser.parse_args()
 
@@ -64,6 +73,9 @@ def run() -> int:
 
     args = parse_args()
     connectors = build_connectors()
+    if args.only != "all":
+        provider = args.only.upper()
+        connectors = [connector for connector in connectors if provider in connector.source.name.upper()]
     repository = None if args.dry_run else EventRepository(create_backend_client())
     failures = 0
 
