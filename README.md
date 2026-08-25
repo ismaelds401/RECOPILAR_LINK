@@ -374,3 +374,43 @@ un límite de 20 minutos y no imprime los valores de los secretos. Un fallo de u
 conector queda aislado por el pipeline; si todas las fuentes fallan, el job sí
 termina con error.
 
+## Fase 7: interfaz React, Vite y Tailwind
+
+La aplicación web vive en `frontend/` y consulta directamente los eventos
+próximos con estado `published`. Incluye diseño responsive, búsqueda sin
+sensibilidad a tildes, filtros combinados, orden cronológico, vista de tarjetas,
+agenda y una página individual compartible mediante `?event=slug`.
+
+El navegador utiliza exclusivamente la URL del proyecto y la clave
+**publishable** de Supabase. Crea `frontend/.env.local` con:
+
+```env
+VITE_SUPABASE_URL=https://TU_PROJECT_REF.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_TU_CLAVE_PUBLICA
+```
+
+En proyectos antiguos puede utilizarse la clave `anon` en la segunda variable.
+Nunca copies `SUPABASE_SECRET_KEY`, `service_role` ni una clave `sb_secret_` a
+este archivo: cualquier variable `VITE_` queda disponible en el navegador.
+`frontend/.env.local` está excluido por `.gitignore`.
+
+Instala y valida desde PowerShell:
+
+```powershell
+cd "D:\Recopilacion de eventos\frontend"
+npm install
+npm run test
+npm run build
+npm run dev
+```
+
+Abre `http://localhost:5173`. La portada debe mostrar los eventos de Supabase;
+prueba una búsqueda, combina dos filtros, cambia a Agenda y abre el detalle de
+una tarjeta. Si aparece el mensaje de configuración, revisa los nombres exactos
+de las dos variables y reinicia `npm run dev`. Un error 401 suele indicar una
+clave de otro proyecto; cero resultados puede significar que no hay filas
+próximas con `status = published`.
+
+La compilación genera `frontend/dist/`, que se mantiene fuera de Git. El
+despliegue desde GitHub se configura en la Fase 8 con Cloudflare Pages.
+
