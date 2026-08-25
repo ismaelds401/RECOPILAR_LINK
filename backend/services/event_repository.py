@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from supabase import Client
 
 from backend.connectors.base_connector import SourceDefinition
 from backend.models.event import Event
+from backend.services.deduplicator import DuplicateCandidate, find_duplicate
 
 
 @dataclass(slots=True)
@@ -90,6 +91,13 @@ class EventRepository:
             if event.event_hash in seen_hashes:
                 stats.duplicates += 1
                 continue
+            batch_candidates = [
+                DuplicateCandidate.from_event(existing, f"batch-{index}")
+                for index, existing in enumerate(unique_events)
+            ]
+            if find_duplicate(event, batch_candidates):
+                stats.duplicates += 1
+                continue
             seen_hashes.add(event.event_hash)
             unique_events.append(event)
 
@@ -112,21 +120,30 @@ class EventRepository:
             if row.get("source_event_id")
         }
 
-        new_hashes = [
-            event.event_hash
+        possible_new_events = [
+            event
             for event in unique_events
             if event.source_event_id not in by_source_id
         ]
-        existing_hash_rows: list[dict[str, object]] = []
-        for batch in self._chunks(new_hashes, 100):
-            existing_hash_rows.extend(
+        existing_rows: list[dict[str, object]] = []
+        if possible_new_events:
+            earliest = min(event.start_date for event in possible_new_events)
+            latest = max(event.start_date for event in possible_new_events)
+            existing_rows = (
                 self.client.table("events")
-                .select("id,event_hash")
-                .in_("event_hash", batch)
+                .select(
+                    "id,title,start_date,organization,city,source,"
+                    "source_event_id,event_hash"
+                )
+                .gte("start_date", (earliest - timedelta(minutes=30)).isoformat())
+                .lte("start_date", (latest + timedelta(minutes=30)).isoformat())
                 .execute()
                 .data
             )
-        by_hash = {str(row["event_hash"]): row for row in existing_hash_rows}
+        by_hash = {str(row["event_hash"]): row for row in existing_rows}
+        fuzzy_candidates = [
+            DuplicateCandidate.from_database_row(row) for row in existing_rows
+        ]
 
         inserts: list[dict[str, object]] = []
         updates: list[dict[str, object]] = []
@@ -140,6 +157,9 @@ class EventRepository:
                 updates.append(payload)
                 continue
             if event.event_hash in by_hash:
+                stats.duplicates += 1
+                continue
+            if find_duplicate(event, fuzzy_candidates):
                 stats.duplicates += 1
                 continue
             inserts.append(payload)
