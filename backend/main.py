@@ -11,6 +11,7 @@ from backend.connectors.aws import AWSConnector
 from backend.connectors.gdg import GDGConnector, INITIAL_GDG_CHAPTERS
 from backend.connectors.luma import LumaConnector
 from backend.services.event_repository import EventRepository, PersistenceStats
+from backend.services.classifier import classify_events
 from backend.services.supabase_service import create_backend_client
 
 
@@ -56,6 +57,9 @@ def print_preview(events: list[object], limit: int) -> None:
                 {
                     "title": event.title,
                     "start_date": event.start_date.isoformat(),
+                    "category": event.category,
+                    "event_type": event.event_type,
+                    "tags": event.tags,
                     "modality": event.modality,
                     "city": event.city,
                     "country": event.country,
@@ -90,7 +94,7 @@ def run() -> int:
                 source_id = repository.ensure_source(connector.source)
                 log_id = repository.start_log(source_id)
 
-            events = connector.collect()
+            events = classify_events(connector.collect())
             print(f"{connector.source.name}: {len(events)} upcoming events normalized.")
             print_preview(events, args.preview)
 
