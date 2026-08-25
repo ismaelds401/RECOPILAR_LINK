@@ -234,3 +234,36 @@ en `null` o `Other`; no se inventan datos. La modalidad usa señales del propio
 feed (coordenadas, dirección, palabras como Zoom/online y formatos físicos con
 ubicación oculta). La clasificación detallada pertenece a la Fase 5.
 
+## Fase 3: eventos de Google Developer Groups
+
+El segundo conector consulta el endpoint JSON público que utiliza el sitio
+oficial de Google Developer Groups. La cobertura inicial incluye GDG Lima, GDG
+Cloud Lima, GDG Open y GDG Callao. No necesita credenciales ni un plan de pago.
+
+El conector procesa campos estructurados de fecha, zona horaria, modalidad,
+ubicación, etiquetas, imagen y registro. También incorpora timeout, reintentos,
+límite de 5 MB, validación del tipo de contenido, paginación limitada y
+aislamiento de errores por comunidad.
+
+Prueba solamente GDG sin escribir en Supabase:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.main --only gdg --dry-run --preview 10
+```
+
+Ejecuta la carga real y verifica el resultado:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.main --only gdg
+.\.venv\Scripts\python.exe -m backend.scripts.check_phase3
+```
+
+Los eventos coorganizados pueden aparecer en varias comunidades. La clave
+`(source, source_event_id)` conserva una sola fila por identificador GDG; por
+ejemplo, el evento compartido por GDG Cloud Lima y GDG Open no se duplica.
+
+El endpoint pertenece al sitio oficial y es de acceso público, pero no es una
+API externa con garantía contractual de estabilidad. Las validaciones del
+conector permiten detectar un cambio de formato y registrar el fallo sin
+detener las demás fuentes.
+
