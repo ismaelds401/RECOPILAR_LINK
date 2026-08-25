@@ -20,6 +20,7 @@ venv/
 Thumbs.db
 
 # Logs and generated files
+node_modules/
 *.log
 dist/
 build/
