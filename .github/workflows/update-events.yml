@@ -1,0 +1,74 @@
+name: Update technology events
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+      timezone: "America/Lima"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-technology-events
+  cancel-in-progress: false
+
+jobs:
+  update-events:
+    name: Collect, classify, and store events
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONUNBUFFERED: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [[ -z "$SUPABASE_URL" ]]; then
+            echo "Missing repository secret: SUPABASE_URL" >&2
+            exit 1
+          fi
+          if [[ -z "$SUPABASE_SECRET_KEY" ]]; then
+            echo "Missing repository secret: SUPABASE_SECRET_KEY" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest -p no:cacheprovider
+
+      - name: Update events in Supabase
+        run: python -m backend.main --preview 0
+
+      - name: Verify stored events
+        run: python -m backend.scripts.check_phase5
+
+      - name: Write run summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## TechEvents Peru"
+            echo
+            echo "- Trigger: ${{ github.event_name }}"
+            echo "- Schedule: every 6 hours at minute 17 (America/Lima)"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Result: inspect the steps above and Supabase scraping_logs"
+          } >> "$GITHUB_STEP_SUMMARY"
+
