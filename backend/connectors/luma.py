@@ -17,7 +17,12 @@ from backend.connectors.base_connector import (
     SourceDefinition,
 )
 from backend.models.event import Event
-from backend.utils.text import build_event_hash, build_slug, normalize_text
+from backend.utils.text import (
+    build_event_hash,
+    build_slug,
+    infer_event_type,
+    normalize_text,
+)
 
 LIMA_TIMEZONE = ZoneInfo("America/Lima")
 MAX_FEED_BYTES = 5 * 1024 * 1024
@@ -191,7 +196,7 @@ class LumaConnector(BaseConnector):
             organization=organization,
             category="Other",
             tags=[],
-            event_type=self._infer_event_type(title),
+            event_type=infer_event_type(title),
             start_date=start_date,
             end_date=end_date,
             timezone="America/Lima",
@@ -292,23 +297,6 @@ class LumaConnector(BaseConnector):
         if location.startswith("http"):
             return "virtual"
         return "in_person"
-
-    @staticmethod
-    def _infer_event_type(title: str) -> str | None:
-        normalized = normalize_text(title)
-        rules = (
-            (("hackathon", "hackaton"), "hackathon"),
-            (("workshop", "taller"), "workshop"),
-            (("webinar",), "webinar"),
-            (("meetup", "meet up"), "meetup"),
-            (("conference", "conferencia", "summit"), "conference"),
-            (("bootcamp",), "bootcamp"),
-            (("talk", "charla"), "talk"),
-        )
-        for keywords, event_type in rules:
-            if any(keyword in normalized for keyword in keywords):
-                return event_type
-        return None
 
     @staticmethod
     def _clean_description(description: str) -> str | None:
