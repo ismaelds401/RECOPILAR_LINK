@@ -44,3 +44,20 @@ def build_slug(title: str, start_date: datetime, source_event_id: str) -> str:
     return f"{title_part}-{start_date:%Y-%m-%d}-{source_part}".strip("-")
 
 
+def infer_event_type(title: str, tags: list[str] | None = None) -> str | None:
+    """Infer only the broad event format; topical classification is Phase 5."""
+    normalized = normalize_text(" ".join([title, *(tags or [])]))
+    rules = (
+        (("hackathon", "hackaton"), "hackathon"),
+        (("workshop", "taller", "hands on"), "workshop"),
+        (("webinar",), "webinar"),
+        (("meetup", "meet up"), "meetup"),
+        (("conference", "conferencia", "summit", "devfest"), "conference"),
+        (("bootcamp",), "bootcamp"),
+        (("talk", "charla"), "talk"),
+    )
+    for keywords, event_type in rules:
+        if any(keyword in normalized for keyword in keywords):
+            return event_type
+    return None
+
