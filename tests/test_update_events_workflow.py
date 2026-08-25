@@ -36,4 +36,5 @@ def test_update_events_workflow_uses_minimum_permissions_and_secrets() -> None:
     assert "python -m pytest -p no:cacheprovider" in commands
     assert "python -m backend.main --preview 0" in commands
     assert "python -m backend.scripts.check_phase5" in commands
+    assert "python -m backend.scripts.check_phase10" in commands
 

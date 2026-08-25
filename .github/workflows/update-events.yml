@@ -59,6 +59,9 @@ jobs:
       - name: Verify stored events
         run: python -m backend.scripts.check_phase5
 
+      - name: Verify Microsoft Reactor source
+        run: python -m backend.scripts.check_phase10
+
       - name: Write run summary
         if: always()
         shell: bash

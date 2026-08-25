@@ -489,3 +489,40 @@ Verifica la tabla privada:
 El primer envío real validado procesó 20 eventos, terminó sin fallos y dejó 20
 entregas con estado `sent` en Supabase.
 
+## Fase 10: nuevas fuentes
+
+La primera ampliación incorpora [Microsoft Reactor](https://developer.microsoft.com/en-us/reactor/)
+mediante el endpoint JSON público que utiliza su catálogo oficial. No requiere
+cuenta, API key ni servicios de pago. Se solicitan solamente eventos
+individuales; las series, registros de prueba y actividades ya finalizadas se
+descartan.
+
+El conector conserva transmisiones virtuales accesibles globalmente y eventos
+híbridos. Los eventos exclusivamente presenciales se guardan sólo cuando la
+ubicación indica Perú o Lima. Normaliza fechas UTC, modalidad, idioma, tema,
+nivel, tipo y enlace oficial de registro, y después reutiliza la clasificación
+y deduplicación de la Fase 5.
+
+La integración tiene timeout, tres reintentos, validación JSON, un máximo de
+5 MB por respuesta y un límite de 20 páginas. Un cambio incompatible en el
+endpoint queda registrado como fallo aislado y no detiene las otras fuentes.
+
+Prueba Reactor sin escribir en Supabase:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.main --only reactor --dry-run --preview 10
+```
+
+Ejecuta una carga real y verifica la fuente:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.main --only reactor
+.\.venv\Scripts\python.exe -m backend.scripts.check_phase10
+```
+
+El workflow de actualización existente incluye automáticamente este conector
+cada seis horas. La evaluación de AWS Cloud Clubs no encontró un catálogo
+oficial estructurado equivalente; por eso no se añadió un scraper frágil ni se
+usaron APIs privadas. Las siguientes fuentes se incorporarán de forma
+incremental cuando ofrezcan RSS, iCal, JSON o una API pública estable.
+
