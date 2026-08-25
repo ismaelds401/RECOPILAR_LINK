@@ -93,10 +93,16 @@ class EventRepository:
             seen_hashes.add(event.event_hash)
             unique_events.append(event)
 
+        if not unique_events:
+            return stats
+        source_name = unique_events[0].source
+        if any(event.source != source_name for event in unique_events):
+            raise ValueError("persist() accepts events from only one provider at a time.")
+
         existing_source_rows = (
             self.client.table("events")
             .select("id,source_event_id,event_hash")
-            .eq("source", "Luma")
+            .eq("source", source_name)
             .execute()
             .data
         )
