@@ -267,3 +267,37 @@ API externa con garantía contractual de estabilidad. Las validaciones del
 conector permiten detectar un cambio de formato y registrar el fallo sin
 detener las demás fuentes.
 
+## Fase 4: catálogo oficial de eventos AWS
+
+El conector AWS consulta el endpoint JSON público que alimenta el
+[catálogo oficial de eventos AWS](https://aws.amazon.com/events/explore-aws-events/).
+No requiere cuenta, API key ni un servicio de pago. Se limita a eventos
+first-party que estén marcados como virtuales o pertenezcan a América, y luego
+conserva:
+
+- eventos virtuales o híbridos disponibles remotamente;
+- eventos presenciales cuya ubicación indique Perú o Lima.
+
+Cada respuesta tiene timeout, tres reintentos, validación JSON y un límite de
+5 MB y 1000 elementos. Se combinan los resultados virtuales y americanos por
+el ID oficial de AWS antes de normalizarlos.
+
+Prueba AWS sin escribir en Supabase:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.main --only aws --dry-run --preview 10
+```
+
+Ejecuta la carga real y verifica el resultado:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.main --only aws
+.\.venv\Scripts\python.exe -m backend.scripts.check_phase4
+```
+
+El catálogo puede publicar la fecha sin todos los campos opcionales. El
+conector aprovecha el rango horario visible cuando existe, conserva `null` para
+precio, país o imagen desconocidos y no incorpora eventos presenciales de
+otros países. Si AWS marca un registro como virtual y presencial a la vez, se
+normaliza como `hybrid`.
+
