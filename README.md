@@ -440,3 +440,52 @@ de una sola página y `frontend/public/_headers` añade cabeceras básicas de
 seguridad. El historial y los registros se consultan en **Cloudflare → Workers
 & Pages → recopilar-link → Deployments**.
 
+## Fase 9: resumen diario por Gmail
+
+El workflow `.github/workflows/send-daily-digest.yml` se ejecuta todos los días
+a las `08:23` de `America/Lima`. También puede iniciarse manualmente con la
+opción `dry_run`: activada genera una vista previa segura; desactivada realiza
+el envío.
+
+Antes de habilitarlo, ejecuta `database/phase9_notifications.sql` en Supabase.
+La tabla privada `notification_deliveries` registra un hash SHA-256 del correo
+y cada evento enviado. No almacena la dirección del destinatario y evita que
+un evento vuelva a aparecer en resúmenes posteriores.
+
+Configura estos **Repository secrets** de GitHub Actions:
+
+- `GMAIL_SENDER_EMAIL`: cuenta Gmail remitente;
+- `GMAIL_APP_PASSWORD`: contraseña de aplicación de Google de 16 caracteres;
+- `DIGEST_RECIPIENT_EMAILS`: uno o más destinatarios separados por comas.
+
+La contraseña normal de Google no se utiliza. La contraseña de aplicación
+requiere verificación en dos pasos y nunca debe guardarse en `.env.example`, el
+código, los registros o variables públicas.
+
+Las preferencias son **Repository variables** opcionales, separadas por comas:
+
+- `DIGEST_CATEGORIES`, `DIGEST_TAGS`, `DIGEST_CITIES`;
+- `DIGEST_MODALITIES` (`in_person`, `virtual`, `hybrid`);
+- `DIGEST_ORGANIZATIONS`, `DIGEST_KEYWORDS`;
+- `DIGEST_FREE_ONLY`, `DIGEST_LOOKBACK_HOURS`, `DIGEST_MAX_EVENTS`.
+
+Si no se configura una dimensión, no restringe los resultados. Varias opciones
+dentro de una dimensión funcionan como alternativas; las dimensiones activas
+se combinan entre sí. El resumen incluye versiones HTML y texto plano, escapa
+los datos procedentes de proveedores y enlaza al detalle público en Cloudflare.
+
+Prueba local sin enviar ni crear registros:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.scripts.send_daily_digest --dry-run --preview 20
+```
+
+Verifica la tabla privada:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.scripts.check_phase9
+```
+
+El primer envío real validado procesó 20 eventos, terminó sin fallos y dejó 20
+entregas con estado `sent` en Supabase.
+
