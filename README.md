@@ -414,3 +414,29 @@ próximas con `status = published`.
 La compilación genera `frontend/dist/`, que se mantiene fuera de Git. El
 despliegue desde GitHub se configura en la Fase 8 con Cloudflare Pages.
 
+## Fase 8: despliegue público con Cloudflare Pages
+
+La interfaz está publicada en:
+
+<https://recopilar-link.pages.dev/>
+
+Cloudflare Pages está conectado al repositorio de GitHub y a la rama `main`.
+La configuración de producción es:
+
+- framework: React (Vite);
+- directorio raíz: `frontend`;
+- comando de compilación: `npm run build`;
+- directorio de salida: `dist`;
+- versión de Node: `22.12.0`.
+
+Las variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` se
+configuran en Cloudflare para los entornos Production y Preview. Son datos del
+cliente protegidos por RLS; las credenciales privadas del backend nunca deben
+añadirse a Pages.
+
+Cada cambio publicado en `main` genera automáticamente una nueva compilación y
+despliegue. `frontend/public/_redirects` mantiene el fallback de la aplicación
+de una sola página y `frontend/public/_headers` añade cabeceras básicas de
+seguridad. El historial y los registros se consultan en **Cloudflare → Workers
+& Pages → recopilar-link → Deployments**.
+
