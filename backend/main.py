@@ -1,4 +1,4 @@
-"""Run the Phase 2 event collection pipeline."""
+"""Run the event collection pipeline."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import json
 import sys
 
 from backend.connectors.base_connector import BaseConnector
+from backend.connectors.aws import AWSConnector
 from backend.connectors.gdg import GDGConnector, INITIAL_GDG_CHAPTERS
 from backend.connectors.luma import LumaConnector
 from backend.services.event_repository import EventRepository, PersistenceStats
@@ -22,6 +23,7 @@ def build_connectors() -> list[BaseConnector]:
         )
     ]
     connectors.extend(GDGConnector(chapter) for chapter in INITIAL_GDG_CHAPTERS)
+    connectors.append(AWSConnector())
     return connectors
 
 
@@ -40,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--only",
-        choices=("all", "luma", "gdg"),
+        choices=("all", "luma", "gdg", "aws"),
         default="all",
         help="Run every connector or only one provider family.",
     )
